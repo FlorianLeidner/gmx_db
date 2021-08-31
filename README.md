@@ -33,8 +33,8 @@ gmx_db is build around two central concepts.
     The central gmxdb process will periodically scan the status of active jobs, take action and if applicable update job status.
 <br/><br/> 
 2) <ins>Inheritance</ins>
-
-    Jobs can be in a hierarchical relationship with one another i.e., the progression of job B 
+   
+   Jobs can be in a hierarchical relationship with one another i.e., the progression of job B 
    depends on the status of job A. Currently we only map single parent, directional relationships. If job **B** depends
    on job **A** it also has access to the output of job **A**.
 
