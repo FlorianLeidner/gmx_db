@@ -123,14 +123,17 @@ def populate_db(conn):
 
     # Create worker table
 
-    # This table registers all database workers, whether or not they are active and their address
+    # This table registers all database workers, whether they are active, their (public) key and weight
+    # Currently this table is not used but included to facilitate future updates
 
-    #cmd = 'CREATE TABLE worker (id, INT UNIQUE GENERATED ALWAYS AS IDENTITY,' \
-    #      ' host VARCHAR(40),' \
-    #      ' port SMALLINT,' \
-    #      ' active BOOLEAN);'
+    cmd = 'CREATE TABLE worker (id INT UNIQUE GENERATED ALWAYS AS IDENTITY,' \
+          ' host VARCHAR(40),' \
+          ' port SMALLINT,' \
+          ' active BOOLEAN,' \
+          ' key BYTEA,' \
+          ' weight SMALLINT );'
 
-    #execute_cmd(conn, cmd, fetch=False, commit=True)
+    execute_cmd(conn, cmd, fetch=False, commit=True)
 
     # Create sim table
 

@@ -70,13 +70,12 @@ class DatabaseWorker(Process):
         root = logging.getLogger()
         root.handlers = []
         root.addHandler(handler)
-        # TODO: configure in a way that allows more fine grained control over logging
         root.setLevel(logging.DEBUG)
 
 
 class DatabaseWorkerMain(DatabaseWorker):
 
-    def __init__(self, dbname, user, password, host, port, interval=10, timeout=-1, log_queue=None, clean=False):
+    def __init__(self, dbname, user, password, host, port, stop_event, interval=10, timeout=-1, log_queue=None, clean=False):
         """
         Monitor jobs on a database and assign Monitor Workers to running jobs
 
@@ -94,6 +93,7 @@ class DatabaseWorkerMain(DatabaseWorker):
         self.db_info = (dbname, user, password, host, port)
         super().__init__(*self.db_info, log_queue=self.log_queue)
 
+        self.stop_event = stop_event
         self.interval = interval
         self.timeout = timeout
         self.queue = Queue()
@@ -136,11 +136,13 @@ class DatabaseWorkerMain(DatabaseWorker):
         # Keep track of all sim_ids with active workers
         active = {}
         t = time.time()
-        while self.timeout*(time.time()-t) < self.timeout**2:  # simple implementation of -t = inf
+        while 1:
+            if self.stop_event.is_set():
+                break
             # First check if any workers
             while not self.queue.empty():
                 sim_id = self.queue.get()
-                self.logger.debug(f'Recieved exit code for: {sim_id}')
+                self.logger.debug(f'Received exit code for: {sim_id}')
                 active[sim_id].join()  # Wait until the worker shuts down
                 del(active[sim_id])
                 self.logger.debug(f'Recycled worker for: {sim_id}')
@@ -153,8 +155,8 @@ class DatabaseWorkerMain(DatabaseWorker):
                     continue
                 # For submitted jobs and jobs with dependency check if they are valid
                 if stat_id in (1, 4):
-                    valid = self.is_valid(sim_id, stat_id)
                     self.logger.debug(f'No worker assigned to: {sim_id} with stat_id: {stat_id}')
+                    valid = self.is_valid(sim_id, stat_id)
                     if not valid:
                         self.logger.error(f'sim_id: {sim_id} not a valid job, flagging as failed')
                         cmd = f'UPDATE sim SET stat_id=0 WHERE id={sim_id};'
@@ -179,8 +181,6 @@ class DatabaseWorkerMain(DatabaseWorker):
                     active[sim_id] = Depend(*self.db_info, sim_id=sim_id, queue=self.queue)
                     active[sim_id].daemon = True
                     active[sim_id].start()
-
-            time.sleep(self.interval)
 
 
 class Monitor(DatabaseWorker):
@@ -215,7 +215,7 @@ class Monitor(DatabaseWorker):
 
     def cleanup(self):
         """
-        Delete JSCRIPTS and JLOGS
+        Delete JOSCRIPTS and JLOGS
         :return:
         """
 
@@ -249,7 +249,7 @@ class Monitor(DatabaseWorker):
         self.db_exec(cmd, fetch=False, commit=True)
         return
 
-    # TODO Should check for outfiles once the job completes
+    #  TODO Should check for outfiles once the job completes
     def run(self):
         self.logger.debug(f'Monitoring: {self.sim_id}')
         t = time.time()
@@ -456,7 +456,7 @@ class GMXSubmit(DatabaseWorker):
         submit_func = {'g_submit': gsubmit_run, 'grompp': grompp_run, 'shell': shell_run}[self.app]
 
         trials = 0
-        return_code = 0  # Defined ot turn of warning in pycharm
+        return_code = 0  # Defined to turn of warning in pycharm
         while trials < self.ntrials:
             return_code, out = submit_func(self.args)
             if return_code:
