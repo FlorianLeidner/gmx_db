@@ -37,6 +37,12 @@ gmx_db is build around two central concepts.
    Jobs can be in a hierarchical relationship with one another i.e., the progression of job B 
    depends on the status of job A. Currently we only map single parent, directional relationships. If job **B** depends
    on job **A** it also has access to the output of job **A**.
+<br/> <br/>    
+3) <ins>Groups</ins> (Future Update)
+
+   Groups of workers share a common filesystem. 
+   Jobs assigned to a specific group can only be run by machines in the same group (unless otherwise specified). 
+   This feature is currently not implemented. 
 
 ## Usage
 
@@ -75,7 +81,7 @@ Each job requires a number of key/value pairs:
 
 
 The configuration file can contain shell variables (e.g. $PWD).
-If a job depends on an earlier job, files from the parent job cna be specified using **%** followed by the id of the specific file.
+If a job depends on an earlier job, files from the parent job can be specified using **%** followed by the id of the specific file.
 
 ## Limitations
 
